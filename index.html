@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sound Installation Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Project controls">
+        <div class="brand-row">
+          <div>
+            <h1>Spatial Sound Lab</h1>
+            <p>Modular sampling installation simulator</p>
+          </div>
+          <button class="icon-button" id="randomizeButton" type="button" title="Randomize layout" aria-label="Randomize layout">
+            <span class="icon dice-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <section class="panel project-panel">
+          <div class="panel-title">
+            <h2>Project</h2>
+            <span id="projectStatus">Not saved</span>
+          </div>
+          <div class="project-actions" aria-label="Project save and load controls">
+            <button class="compact-button" id="saveProjectButton" type="button">Save</button>
+            <button class="compact-button secondary" id="loadProjectButton" type="button">Load</button>
+            <button class="compact-button secondary" id="downloadProjectButton" type="button">Export</button>
+            <label class="compact-button secondary import-button">
+              <span>Import</span>
+              <input id="projectImport" type="file" accept="application/json,.json">
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Space</h2>
+            <span id="roomReadout">Gallery Room A</span>
+          </div>
+          <label>
+            <span>Preset</span>
+            <select id="spacePreset">
+              <option value="gallery">Gallery Room A</option>
+              <option value="racquetball">Racquetball Court</option>
+              <option value="gym">Large Gym</option>
+              <option value="warehouse">Concrete Warehouse</option>
+              <option value="custom">Custom Space</option>
+            </select>
+          </label>
+          <div class="control-grid three">
+            <label>
+              <span>Width m</span>
+              <input id="roomWidth" type="number" min="3" max="90" step="0.5" value="18">
+            </label>
+            <label>
+              <span>Depth m</span>
+              <input id="roomDepth" type="number" min="3" max="90" step="0.5" value="12">
+            </label>
+            <label>
+              <span>Height m</span>
+              <input id="roomHeight" type="number" min="2" max="30" step="0.5" value="5">
+            </label>
+          </div>
+          <label>
+            <span>Surface set</span>
+            <select id="surfacePreset">
+              <option value="wood">Wood floor, plaster walls</option>
+              <option value="concrete">Sealed concrete shell</option>
+              <option value="rubber">Rubber court, hard walls</option>
+              <option value="tile">Tile floor, glass perimeter</option>
+              <option value="mixed">Mixed absorbers and diffusers</option>
+            </select>
+          </label>
+          <div class="slider-line">
+            <span>Absorption</span>
+            <input id="absorption" type="range" min="0" max="1" step="0.01" value="0.27">
+            <output id="absorptionOut">0.27</output>
+          </div>
+          <div class="slider-line">
+            <span>Diffusion</span>
+            <input id="diffusion" type="range" min="0" max="1" step="0.01" value="0.46">
+            <output id="diffusionOut">0.46</output>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Microphone</h2>
+            <span id="micReadout">XY stereo</span>
+          </div>
+          <label>
+            <span>Capture rig</span>
+            <select id="micPreset">
+              <option value="xy">XY stereo microphone</option>
+              <option value="binaural">Binaural head</option>
+              <option value="tetra">Tetrahedral ambisonic</option>
+              <option value="array">Distributed mic array</option>
+            </select>
+          </label>
+          <div class="control-grid three">
+            <label>
+              <span>X m</span>
+              <input id="micX" type="number" min="0" step="0.1" value="9">
+            </label>
+            <label>
+              <span>Y m</span>
+              <input id="micY" type="number" min="0" step="0.1" value="6">
+            </label>
+            <label>
+              <span>Aim deg</span>
+              <input id="micAim" type="number" min="0" max="359" step="1" value="25">
+            </label>
+          </div>
+          <div class="slider-line">
+            <span>Array span</span>
+            <input id="arraySpan" type="range" min="0.1" max="16" step="0.1" value="1.6">
+            <output id="arraySpanOut">1.6 m</output>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stage" aria-label="Simulation workspace">
+        <header class="topbar">
+          <nav class="tabs" aria-label="Workspace views">
+            <button class="tab-button active" type="button" data-view="sources">Sources</button>
+            <button class="tab-button" type="button" data-view="samples">Samples</button>
+            <button class="tab-button" type="button" data-view="export">Synth</button>
+          </nav>
+          <div class="transport">
+            <button class="transport-button" id="playButton" type="button">
+              <span class="icon play-icon" aria-hidden="true"></span>
+              <span>Preview</span>
+            </button>
+            <button class="transport-button secondary" id="stopButton" type="button">
+              <span class="icon stop-icon" aria-hidden="true"></span>
+              <span>Stop</span>
+            </button>
+            <label class="tempo-control">
+              <span>Density</span>
+              <input id="density" type="range" min="0.2" max="8" step="0.1" value="2.6">
+              <output id="densityOut">2.6/s</output>
+            </label>
+          </div>
+        </header>
+
+        <div class="workspace-grid">
+          <section class="map-panel" aria-label="Spatial layout">
+            <div class="map-header">
+              <div>
+                <h2>Plan</h2>
+                <p id="simulationReadout">8 sources, 18 x 12 x 5 m, RT60 1.64 s</p>
+              </div>
+              <div class="view-tools" aria-label="Placement tools">
+                <button class="tool-button active" type="button" data-layout="random" title="Random floor placement" aria-label="Random floor placement">
+                  <span class="icon scatter-icon" aria-hidden="true"></span>
+                </button>
+                <button class="tool-button" type="button" data-layout="grid" title="Grid placement" aria-label="Grid placement">
+                  <span class="icon grid-icon" aria-hidden="true"></span>
+                </button>
+                <button class="tool-button" type="button" data-layout="ceiling" title="Ceiling suspension" aria-label="Ceiling suspension">
+                  <span class="icon hang-icon" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+            <canvas id="roomCanvas" width="960" height="620" aria-label="Room plan with sound sources and microphone"></canvas>
+            <div class="legend">
+              <span><i class="legend-dot wood"></i> Wood</span>
+              <span><i class="legend-dot metal"></i> Metal</span>
+              <span><i class="legend-dot stone"></i> Stone</span>
+              <span><i class="legend-dot ceramic"></i> Ceramic</span>
+              <span><i class="legend-mic"></i> Microphone</span>
+            </div>
+          </section>
+
+          <section class="details-panel" aria-label="Selected source editor">
+            <div class="source-heading">
+              <div>
+                <h2 id="selectedSourceName">Source 1</h2>
+                <p id="selectedSourceSummary">Wooden dowel, solenoid taps, floor scatter</p>
+              </div>
+              <button class="icon-button" id="addSourceButton" type="button" title="Add sound source" aria-label="Add sound source">
+                <span class="icon plus-icon" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="view-pane active" id="sourcesView">
+              <label>
+                <span>Source family</span>
+                <select id="sourceFamily">
+                  <option value="wood">Wooden sticks and rods</option>
+                  <option value="metal">Metal objects and plates</option>
+                  <option value="stone">Rocks and mineral fragments</option>
+                  <option value="ceramic">Ceramic, tile, and glass</option>
+                </select>
+              </label>
+              <label>
+                <span>Object variant</span>
+                <select id="sourceVariant"></select>
+              </label>
+              <label>
+                <span>Activator</span>
+                <select id="activator">
+                  <option value="solenoid">Solenoid tapper</option>
+                  <option value="motor">Eccentric motor</option>
+                  <option value="cable">Dragged cable harness</option>
+                  <option value="pendulum">Pendulum striker</option>
+                  <option value="air">Compressed air pulse</option>
+                </select>
+              </label>
+              <label>
+                <span>Excitation</span>
+                <select id="excitation">
+                  <option value="tap">Tap or collision</option>
+                  <option value="scrape">Scrape or slide</option>
+                  <option value="roll">Roll and chatter</option>
+                  <option value="bow">Continuous friction</option>
+                </select>
+              </label>
+              <div class="control-grid two">
+                <label>
+                  <span>X m</span>
+                  <input id="sourceX" type="number" min="0" step="0.1">
+                </label>
+                <label>
+                  <span>Y m</span>
+                  <input id="sourceY" type="number" min="0" step="0.1">
+                </label>
+              </div>
+              <div class="control-grid two">
+                <label>
+                  <span>Height m</span>
+                  <input id="sourceZ" type="number" min="0" step="0.1">
+                </label>
+                <label>
+                  <span>Orientation deg</span>
+                  <input id="sourceAngle" type="number" min="0" max="359" step="1">
+                </label>
+              </div>
+              <div class="slider-line">
+                <span>Rate</span>
+                <input id="sourceRate" type="range" min="0.05" max="3.5" step="0.05">
+                <output id="sourceRateOut">0.60/s</output>
+              </div>
+              <div class="slider-line">
+                <span>Gain</span>
+                <input id="sourceGain" type="range" min="0" max="1" step="0.01">
+                <output id="sourceGainOut">0.72</output>
+              </div>
+            </div>
+
+            <div class="view-pane" id="samplesView">
+              <label>
+                <span>Recording group</span>
+                <select id="recordingGroup">
+                  <option>Stick on maple floor</option>
+                  <option>Brass plate on concrete</option>
+                  <option>Granite fragment on tile</option>
+                  <option>Suspended rod collisions</option>
+                  <option>New metadata set</option>
+                </select>
+              </label>
+              <div class="drop-zone" id="dropZone">
+                <input id="sampleUpload" type="file" accept="audio/*" multiple>
+                <strong>Drop or choose recordings</strong>
+                <span>Each file becomes a sample variant for the selected source.</span>
+              </div>
+              <div class="control-grid two">
+                <label>
+                  <span>Material</span>
+                  <select id="sampleMaterial">
+                    <option>Wood</option>
+                    <option>Steel</option>
+                    <option>Aluminum</option>
+                    <option>Stone</option>
+                    <option>Glass</option>
+                    <option>Ceramic</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Surface</span>
+                  <select id="sampleSurface">
+                    <option>Maple floor</option>
+                    <option>Concrete</option>
+                    <option>Rubber court</option>
+                    <option>Tile</option>
+                    <option>Hanging free</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>Sound class</span>
+                <select id="sampleClass">
+                  <option>Collision transient</option>
+                  <option>Scrape texture</option>
+                  <option>Rolling chatter</option>
+                  <option>Friction drone</option>
+                  <option>Resonant decay</option>
+                </select>
+              </label>
+              <ul class="sample-list" id="sampleList" aria-label="Uploaded samples"></ul>
+            </div>
+
+            <div class="view-pane" id="exportView">
+              <div class="export-card">
+                <h3>Realtime Synth Target</h3>
+                <p>Package this project as a statistical sampler with spatial metadata, source families, sample pools, and room impulse settings.</p>
+                <div class="control-grid two">
+                  <label>
+                    <span>Runtime</span>
+                    <select id="runtimeTarget">
+                      <option>Web Audio worklet</option>
+                      <option>Max external</option>
+                      <option>JUCE plugin core</option>
+                      <option>SuperCollider scene</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Output bus</span>
+                    <select id="outputBus">
+                      <option>Stereo</option>
+                      <option>Binaural</option>
+                      <option>First-order ambisonics</option>
+                      <option>Mic array stems</option>
+                    </select>
+                  </label>
+                </div>
+                <button class="wide-button" id="exportButton" type="button">Generate scene manifest</button>
+                <pre id="manifestPreview" aria-label="Scene manifest preview"></pre>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="source-strip" aria-label="Source instances">
+          <div class="strip-header">
+            <h2>Source Instances</h2>
+            <form class="source-create-form" id="newSourceForm" aria-label="Add source instance">
+              <label>
+                <span>Family</span>
+                <select id="newSourceFamily">
+                  <option value="wood">Wood</option>
+                  <option value="metal">Metal</option>
+                  <option value="stone">Stone</option>
+                  <option value="ceramic">Ceramic</option>
+                </select>
+              </label>
+              <label>
+                <span>Variant</span>
+                <select id="newSourceVariant"></select>
+              </label>
+              <label>
+                <span>Activator</span>
+                <select id="newActivator">
+                  <option value="solenoid">Solenoid</option>
+                  <option value="motor">Motor</option>
+                  <option value="cable">Cable drag</option>
+                  <option value="pendulum">Pendulum</option>
+                  <option value="air">Air pulse</option>
+                </select>
+              </label>
+              <label>
+                <span>Excitation</span>
+                <select id="newExcitation">
+                  <option value="tap">Tap</option>
+                  <option value="scrape">Scrape</option>
+                  <option value="roll">Roll</option>
+                  <option value="bow">Friction</option>
+                </select>
+              </label>
+              <button class="create-source-button" type="submit">Add</button>
+            </form>
+            <span id="sourceCount">8 active</span>
+          </div>
+          <div class="source-list" id="sourceList"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
